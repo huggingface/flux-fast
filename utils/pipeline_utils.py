@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from diffusers import FluxPipeline
 from torch._inductor.package import load_package
 from typing import List, Optional, Tuple
+from PIL import Image
 
 
 @torch.library.custom_op("flash::flash_attn_func", mutates_args=())
@@ -47,7 +48,7 @@ def flash_attn_func(
         k_descale=k_descale,
         v_descale=v_descale,
         window_size=window_size,
-        sink_token_length=sink_token_length,
+        # sink_token_length=sink_token_length, unknown keyword argument 🤔
         softcap=softcap,
         num_splits=num_splits,
         pack_gqa=pack_gqa,
@@ -227,15 +228,17 @@ def use_export_aoti(pipeline, cache_dir, serialize=False):
     def _example_tensor(*shape):
         return torch.randn(*shape, device="cuda", dtype=torch.bfloat16)
 
+    is_kontext = pipeline.__class__.__name__ == "FluxKontextPipeline"
+
     # === Transformer compile / export ===
     transformer_kwargs = {
-        "hidden_states": _example_tensor(1, 4096, 64),
-        "timestep": torch.tensor([1.], device="cuda", dtype=torch.bfloat16),
-        "guidance": None,
+        "hidden_states": _example_tensor(1, 8137, 64) if is_kontext else _example_tensor(1, 4096, 64),
+        "timestep": torch.tensor([1.], device="cuda", dtype=torch.bfloat16) / 1000,
+        "guidance": torch.tensor([2.5], device="cuda", dtype=torch.bfloat16) if is_kontext else None,
         "pooled_projections": _example_tensor(1, 768),
         "encoder_hidden_states": _example_tensor(1, 512, 4096),
         "txt_ids": _example_tensor(512, 3),
-        "img_ids": _example_tensor(4096, 3),
+        "img_ids": _example_tensor(8137, 3) if is_kontext else _example_tensor(4096, 3),
         "joint_attention_kwargs": {},
         "return_dict": False,
     }
@@ -283,10 +286,11 @@ def use_export_aoti(pipeline, cache_dir, serialize=False):
 
     # Possibly serialize model out
     decoder_package_path = os.path.join(cache_dir, "exported_decoder.pt2")
+    decoder_args = _example_tensor(1, 16, 106, 154) if is_kontext else _example_tensor(1, 16, 128, 128)
     if serialize:
         # Apply export
         exported_decoder: torch.export.ExportedProgram = torch.export.export(
-            pipeline.vae, args=(_example_tensor(1, 16, 128, 128),), kwargs=vae_decode_kwargs
+            pipeline.vae, args=(decoder_args,), kwargs=vae_decode_kwargs
         )
 
         # Apply AOTI
@@ -303,18 +307,27 @@ def use_export_aoti(pipeline, cache_dir, serialize=False):
 
     # warmup before cudagraphing
     with torch.no_grad():
-        loaded_decoder(_example_tensor(1, 16, 128, 128), **vae_decode_kwargs)
+        loaded_decoder(decoder_args, **vae_decode_kwargs)
 
     loaded_decoder = cudagraph(loaded_decoder)
     pipeline.vae.decode = loaded_decoder
 
     # warmup for a few iterations
+    pipe_kwargs = {
+        "prompt": "dummy prompt to trigger torch compilation",
+        "output_type": "pil",
+        "num_inference_steps": 4
+    }
+    if is_kontext:
+        pipe_kwargs.update(
+            {
+                "image": Image.new("RGB", size=(1024, 704)), # special shape for now.
+                "height": 704,
+                "width": 1024
+            }, 
+        )
     for _ in range(3):
-        pipeline(
-            "dummy prompt to trigger torch compilation",
-            output_type="pil",
-            num_inference_steps=4,
-        ).images[0]
+        pipeline(**pipe_kwargs).images[0]
 
     return pipeline
 
@@ -371,10 +384,26 @@ def load_pipeline(options):
     cache_dir = options.get("cache_dir", os.path.expandvars("$HOME/.cache/flux-fast"))
     pathlib.Path(cache_dir).mkdir(parents=True, exist_ok=True)
 
-    pipeline = FluxPipeline.from_pretrained(
-        "black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16
-    ).to("cuda")
+    # schnell
+    benchmark_schnell = options.get("benchmark_schnell", True)
+    benchmark_kontext = options.get("benchmark_kontext", False)
+    if benchmark_schnell:
+        pipeline = FluxPipeline.from_pretrained(
+            "black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16
+        ).to("cuda")
+    elif benchmark_kontext:
+        from kontext_pipeline import FluxKontextPipeline
+        from diffusers import FluxTransformer2DModel
+        from huggingface_hub import hf_hub_download
 
-    pipeline = optimize(pipeline, cache_dir=cache_dir, lossy=True)
+        kontext_path = hf_hub_download(repo_id="diffusers/kontext", filename="kontext.safetensors")
+        transformer = FluxTransformer2DModel.from_single_file(kontext_path, torch_dtype=torch.bfloat16)
+        pipeline = FluxKontextPipeline.from_pretrained(
+            "black-forest-labs/FLUX.1-dev", transformer=transformer, torch_dtype=torch.bfloat16
+        ).to("cuda")
+
+    enable_optims = options.get("enable_optims", False)
+    if enable_optims:
+        pipeline = optimize(pipeline, cache_dir=cache_dir, lossy=True)
 
     return pipeline
