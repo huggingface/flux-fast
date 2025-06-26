@@ -76,10 +76,9 @@ The numbers reported here were gathered using:
 
 To install deps:
 ```
-pip uninstall diffusers -y && pip install git+https://github.com/huggingface/diffusers@b272807bc898a314cde536c1d7d1e43592af1fce
+pip install -U diffusers
 pip install --pre torch==2.8.0.dev20250605+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
 pip install --pre torchao==0.12.0.dev20250609+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
-pip install diffusers==0.33.1
 ```
 
 To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
