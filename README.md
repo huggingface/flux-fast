@@ -3,6 +3,10 @@ Making Flux go brrr on GPUs. With simple recipes from this repo, we enabled ~2.5
 
 Check out the accompanying blog post [here](https://pytorch.org/blog/presenting-flux-fast-making-flux-go-brrr-on-h100s/).
 
+**Updates**
+
+**June 28, 2025**: This repository now supports [Flux.1 Kontext Dev](https://hf.co/black-forest-labs/FLUX.1-Kontext-dev). We enabled ~2.5x speedup on it. Check out [this section](#flux1-kontext-dev) for more details.
+
 ## Results
 
 <table>
@@ -76,6 +80,7 @@ The numbers reported here were gathered using:
 
 To install deps:
 ```
+pip install -U huggingface_hub[hf_xet] accelerate transformers
 pip install -U diffusers
 pip install --pre torch==2.8.0.dev20250605+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
 pip install --pre torchao==0.12.0.dev20250609+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
@@ -153,6 +158,46 @@ mean / variance times in seconds for 10 benchmarking runs printed to STDOUT, as 
 
 * A `.png` image file corresponding to the experiment (e.g. `output.png`). The path can be configured via `--output-file`.
 * An optional PyTorch profiler trace (e.g. `profiler_trace.json.gz`). The path can be configured via `--trace-file`
+
+> [!IMPORTANT]
+> For benchmarking purposes, we use reasonable defaults. For example, for all the benchmarking experiments, we use
+> the 1024x1024 resolution. For Schnell, we use 4 denoising steps, and for Dev and Kontext, we use 28.
+
+## Flux.1 Kontext Dev
+We ran the exact same setup as above on [Flux.1 Kontext Dev](https://hf.co/black-forest-labs/FLUX.1-Kontext-dev) and obtained the following result:
+
+<div align="center">
+<img src="https://huggingface.co/datasets/sayakpaul/sample-datasets/resolve/main/flux_kontext_optims.png" width=500 alt="flux_kontext_plot"/>
+</div><br>
+
+Here are some example outputs for prompt `"Make Pikachu hold a sign that says 'Black Forest Labs is awesome', yarn art style, detailed, vibrant colors"` and [this image](https://huggingface.co/datasets/huggingface/documentation-images/blob/main/diffusers/yarn-art-pikachu.png):
+
+<table>
+  <thead>
+    <tr>
+      <th>Configuration</th>
+      <th>Output</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Baseline</strong></td>
+      <td><img src="https://huggingface.co/datasets/sayakpaul/sample-datasets/resolve/main/bf16_kontext.png" alt="baseline_output" width=400/></td>
+    </tr>
+    <tr>
+      <td><strong>Fully-optimized (with quantization)</strong></td>
+      <td><img src="https://huggingface.co/datasets/sayakpaul/sample-datasets/resolve/main/fully_optimized_kontext.png" alt="fast_output" width=400/></td>
+    </tr>
+  </tbody>
+</table>
+
+<details>
+<summary><b>Notes</b></summary>
+
+* You need to install `diffusers` with [this fix](https://github.com/huggingface/diffusers/pull/11818) included
+* You need to install `torchao` with [this fix](https://github.com/pytorch/ao/pull/2293) included
+
+</details>
 
 ## Improvements, progressively
 <details>

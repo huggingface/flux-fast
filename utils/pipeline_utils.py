@@ -1,10 +1,10 @@
 import os
 import pathlib
 import torch
-import torch.nn.functional as F
-from diffusers import FluxPipeline
+from diffusers import DiffusionPipeline
 from torch._inductor.package import load_package as inductor_load_package
-from typing import List, Optional, Tuple
+from typing import List, Optional
+from PIL import Image
 import inspect
 
 
@@ -213,6 +213,7 @@ def cudagraph(f):
 
 def use_compile(pipeline):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
+    is_kontext = "Kontext" in pipeline.__class__.__name__
     pipeline.transformer = torch.compile(
         pipeline.transformer, mode="max-autotune", fullgraph=True
     )
@@ -221,12 +222,13 @@ def use_compile(pipeline):
     )
 
     # warmup for a few iterations (`num_inference_steps` shouldn't matter)
+    input_kwargs = {
+        "prompt": "dummy prompt to trigger torch compilation", "num_inference_steps": 4
+    }
+    if is_kontext:
+        input_kwargs.update({"image": Image.new("RGB", size=(1024, 1024))})
     for _ in range(3):
-        pipeline(
-            "dummy prompt to trigger torch compilation",
-            output_type="pil",
-            num_inference_steps=4,
-        ).images[0]
+        pipeline(**input_kwargs).images[0]
 
     return pipeline
 
@@ -254,24 +256,28 @@ def use_export_aoti(pipeline, cache_dir, serialize=False, is_timestep_distilled=
     def _example_tensor(*shape):
         return torch.randn(*shape, device="cuda", dtype=torch.bfloat16)
 
+    # helpful flag
+    is_kontext = "Kontext" in pipeline.__class__.__name__
+
     # === Transformer compile / export ===
     seq_length = 256 if is_timestep_distilled else 512
     # these shapes are for 1024x1024 resolution.
     transformer_kwargs = {
-        "hidden_states": _example_tensor(1, 4096, 64),
+        "hidden_states": _example_tensor(1, 4096 * 2, 64) if is_kontext else _example_tensor(1, 4096, 64),
         "timestep": torch.tensor([1.], device="cuda", dtype=torch.bfloat16),
         "guidance": None if is_timestep_distilled else torch.tensor([1.], device="cuda", dtype=torch.bfloat16),
         "pooled_projections": _example_tensor(1, 768),
         "encoder_hidden_states": _example_tensor(1, seq_length, 4096),
         "txt_ids": _example_tensor(seq_length, 3),
-        "img_ids": _example_tensor(4096, 3),
+        "img_ids": _example_tensor(4096 * 2, 3) if is_kontext else _example_tensor(4096, 3),
         "joint_attention_kwargs": {},
         "return_dict": False,
     }
 
     # Possibly serialize model out
+    dev_transformer_name = "exported_kontext_dev_transformer.pt2" if is_kontext else "exported_dev_transformer.pt2"
     transformer_package_path = os.path.join(
-        cache_dir, "exported_transformer.pt2" if is_timestep_distilled else "exported_dev_transformer.pt2"
+        cache_dir, "exported_transformer.pt2" if is_timestep_distilled else dev_transformer_name
     )
     if serialize:
         # Apply export
@@ -333,12 +339,13 @@ def use_export_aoti(pipeline, cache_dir, serialize=False, is_timestep_distilled=
     pipeline.vae.decode = loaded_decoder
 
     # warmup for a few iterations
+    input_kwargs = {
+        "prompt": "dummy prompt to trigger torch compilation", "num_inference_steps": 4
+    }
+    if is_kontext:
+        input_kwargs.update({"image": Image.new("RGB", size=(1024, 1024))})
     for _ in range(3):
-        pipeline(
-            "dummy prompt to trigger torch compilation",
-            output_type="pil",
-            num_inference_steps=4,
-        ).images[0]
+        pipeline(**input_kwargs).images[0]
 
     return pipeline
 
@@ -403,7 +410,7 @@ def optimize(pipeline, args):
 
 def load_pipeline(args):
     load_dtype = torch.float32 if args.disable_bf16 else torch.bfloat16
-    pipeline = FluxPipeline.from_pretrained(args.ckpt, torch_dtype=load_dtype).to(args.device)
+    pipeline = DiffusionPipeline.from_pretrained(args.ckpt, torch_dtype=load_dtype).to(args.device)
     pipeline.set_progress_bar_config(disable=True)
     pipeline = optimize(pipeline, args)
     return pipeline

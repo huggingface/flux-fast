@@ -1,10 +1,8 @@
 import random
-import time
 import torch
-from torch.profiler import profile, record_function, ProfilerActivity
-from utils.benchmark_utils import annotate, create_parser
+from utils.benchmark_utils import create_parser
 from utils.pipeline_utils import load_pipeline  # noqa: E402
-
+from run_benchmark import _determine_pipe_call_kwargs
 
 def set_rand_seeds(seed):
     random.seed(seed)
@@ -16,7 +14,10 @@ def main(args):
     set_rand_seeds(args.seed)
 
     image = pipeline(
-        args.prompt, num_inference_steps=args.num_inference_steps, guidance_scale=0.0
+        prompt=args.prompt, 
+        num_inference_steps=args.num_inference_steps, 
+        generator=torch.manual_seed(args.seed),
+        **_determine_pipe_call_kwargs(args)
     ).images[0]
     image.save(args.output_file)
 

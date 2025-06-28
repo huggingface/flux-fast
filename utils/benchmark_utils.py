@@ -10,9 +10,12 @@ def create_parser():
 
     # general options
     parser.add_argument("--ckpt", type=str, default="black-forest-labs/FLUX.1-schnell",
+                        choices=["black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1-dev", 
+                                "black-forest-labs/FLUX.1-Kontext-dev"],
                         help="Model checkpoint path")
     parser.add_argument("--prompt", type=str, default="A cat playing with a ball of yarn",
                         help="Text prompt")
+    parser.add_argument("--image", type=str, default=None, help="Image to use for Kontext")
     parser.add_argument("--cache-dir", type=str, default=os.path.expandvars("$HOME/.cache/flux-fast"),
                         help="Cache directory for storing exported models")
     parser.add_argument("--use-cached-model", action="store_true",
