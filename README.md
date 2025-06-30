@@ -73,12 +73,20 @@ Here are some example outputs with Flux.1-Schnell for prompt `"A cat playing wit
 We rely primarily on pure PyTorch for the optimizations. Currently, a relatively recent nightly version of PyTorch is required.
 
 The numbers reported here were gathered using:
+
+For NVIDIA:
 * `torch==2.8.0.dev20250605+cu126` - note that we rely on some fixes since 2.7
 * `torchao==0.12.0.dev20250610+cu126` - note that we rely on a fix in the 06/10 nightly
 * `diffusers` - with [this fix](https://github.com/huggingface/diffusers/pull/11696) included
 * `flash_attn_3==3.0.0b1`
 
-To install deps:
+For AMD:
+* `torch==2.8.0.dev20250605+rocm6.4` - note that we rely on some fixes since 2.7
+* `torchao==0.12.0.dev20250610+rocm6.4` - note that we rely on a fix in the 06/10 nightly
+* `diffusers` - with [this fix](https://github.com/huggingface/diffusers/pull/11696) included
+* `aiter-0.1.4.dev17+gd0384d4`
+
+To install deps on NVIDIA:
 ```
 pip install -U huggingface_hub[hf_xet] accelerate transformers
 pip install -U diffusers
@@ -86,16 +94,23 @@ pip install --pre torch==2.8.0.dev20250605+cu126 --index-url https://download.py
 pip install --pre torchao==0.12.0.dev20250609+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
 ```
 
-To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
+To install deps on AMD:
+```
+pip install -U diffusers
+pip install --pre torch==2.8.0.dev20250605+rocm6.4 --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+pip install --pre torchao==0.12.0.dev20250609+rocm6.4 --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+```
 
-For hardware, we used a 96GB 700W H100 GPU. Some of the optimizations applied (BFloat16, torch.compile, Combining q,k,v projections, dynamic float8 quantization) are available on CPU as well.
+(For NVIDIA) To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
+
+For hardware, we used a 96GB 700W H100 GPU and 192GB MI300X GPU. Some of the optimizations applied (BFloat16, torch.compile, Combining q,k,v projections, dynamic float8 quantization) are available on CPU as well.
 
 ## Run the optimized pipeline
 
+On NVIDIA:
 ```sh
 python gen_image.py --prompt "An astronaut standing next to a giant lemon" --output-file output.png --use-cached-model
 ```
-
 This will include all optimizations and will attempt to use pre-cached binary models
 generated via `torch.export` + AOTI. To generate these binaries for subsequent runs, run
 the above command without the `--use-cached-model` flag.
@@ -107,6 +122,13 @@ the above command without the `--use-cached-model` flag.
 > of system libs such as libstdc++; they will not work if they were generated in a sufficiently
 > different environment than the one present at runtime. The PyTorch Compiler team is working on
 > solutions for more portable binaries / artifact caching.
+
+On AMD:
+```sh
+python gen_image.py --prompt "A cat playing with a ball of yarn" --output-file output.png --compile_export_mode compile
+```
+This will include all optimizations except the `torch.export` + AOTI ones.
+
 
 ## Benchmarking
 [`run_benchmark.py`](./run_benchmark.py) is the main script for benchmarking the different optimization techniques.
@@ -326,7 +348,7 @@ image = pipe(prompt, num_inference_steps=4).images[0]
 </details>
 
 <details>
-  <summary>Flash Attention V3</summary>
+  <summary>Flash Attention V3 / aiter</summary>
 
   Flash Attention V3 is substantially faster on H100s than the previous iteration FA2, due
   in large part to float8 support. As this kernel isn't quite available yet within PyTorch Core, we implement a custom
@@ -334,6 +356,8 @@ image = pipe(prompt, num_inference_steps=4).images[0]
   python bindings directly. We also ensure proper PyTorch custom op integration so that
   the op integrates well with `torch.compile` / `torch.export`. Inputs are converted to float8 in an unscaled fashion before
   kernel invocation and outputs are converted back to the original dtype on the way out.
+
+  On AMD GPUs, we use [`aiter`](https://github.com/ROCm/aiter) instead, which also provides fp8 MHA kernels.
 
 ```python
 from diffusers import FluxPipeline

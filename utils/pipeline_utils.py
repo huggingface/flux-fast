@@ -7,6 +7,9 @@ from typing import List, Optional
 from PIL import Image
 import inspect
 
+def is_hip():
+    return torch.version.hip is not None
+
 
 @torch.library.custom_op("flash::flash_attn_func", mutates_args=())
 def flash_attn_func(
@@ -34,11 +37,14 @@ def flash_attn_func(
     else:
         window_size = tuple(window_size)
 
-    import flash_attn_interface
+    if is_hip():
+        from aiter.ops.triton.mha import flash_attn_fp8_func as flash_attn_interface_func
+    else:
+        from flash_attn.flash_attn_interface import flash_attn_interface_func
 
     dtype = torch.float8_e4m3fn
 
-    sig = inspect.signature(flash_attn_interface.flash_attn_func)
+    sig = inspect.signature(flash_attn_interface_func)
     accepted = set(sig.parameters)
     all_kwargs = {
         "softmax_scale": softmax_scale,
@@ -57,11 +63,11 @@ def flash_attn_func(
     }
     kwargs = {k: v for k, v in all_kwargs.items() if k in accepted}
 
-    outputs = flash_attn_interface.flash_attn_func(
-        q.to(dtype), k.to(dtype), v.to(dtype), **kwargs,
+    outputs = flash_attn_interface_func(
+        q, k, v, **kwargs,
     )
-    return outputs[0]
 
+    return outputs.contiguous().to(torch.bfloat16) if is_hip() else outputs[0]
 
 @flash_attn_func.register_fake
 def _(q, k, v, **kwargs):
@@ -71,18 +77,29 @@ def _(q, k, v, **kwargs):
     meta_q = torch.empty_like(q).contiguous()
     return meta_q #, q.new_empty((q.size(0), q.size(2), q.size(1)), dtype=torch.float32)
 
+# fake_input = [torch.randn((1, 4608, 24, 128), device="cuda", dtype=torch.float32) for _ in range(3)]
+# torch.library.opcheck(flash_attn_func, fake_input)
 
 # Copied FusedFluxAttnProcessor2_0 but using flash v3 instead of SDPA
 class FlashFusedFluxAttnProcessor3_0:
     """Attention processor used typically in processing the SD3-like self-attention projections."""
 
     def __init__(self):
-        try:
-            import flash_attn_interface
-        except ImportError:
-            raise ImportError(
-                "flash_attention v3 package is required to be installed"
-            )
+
+        if is_hip():
+            try:
+                from aiter.ops.triton.mha import flash_attn_fp8_func as flash_attn_interface_func
+            except ImportError:
+                raise ImportError(
+                    "aiter is required to be installed"
+                )
+        else:
+            try:
+                from flash_attn.flash_attn_interface import flash_attn_interface_func
+            except ImportError:
+                raise ImportError(
+                    "flash_attention v3 package is required to be installed"
+                )
 
     def __call__(
         self,
@@ -215,10 +232,10 @@ def use_compile(pipeline):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
     is_kontext = "Kontext" in pipeline.__class__.__name__
     pipeline.transformer = torch.compile(
-        pipeline.transformer, mode="max-autotune", fullgraph=True
+        pipeline.transformer, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
     )
     pipeline.vae.decode = torch.compile(
-        pipeline.vae.decode, mode="max-autotune", fullgraph=True
+        pipeline.vae.decode, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
     )
 
     # warmup for a few iterations (`num_inference_steps` shouldn't matter)
