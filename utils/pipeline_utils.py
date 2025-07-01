@@ -42,8 +42,6 @@ def flash_attn_func(
     else:
         from flash_attn.flash_attn_interface import flash_attn_interface_func
 
-    dtype = torch.float8_e4m3fn
-
     sig = inspect.signature(flash_attn_interface_func)
     accepted = set(sig.parameters)
     all_kwargs = {
@@ -63,11 +61,19 @@ def flash_attn_func(
     }
     kwargs = {k: v for k, v in all_kwargs.items() if k in accepted}
 
-    outputs = flash_attn_interface_func(
-        q, k, v, **kwargs,
-    )
+    if is_hip():
+        # For AMD, AITER fp8 kernels take in fp32 inputs and converts it to fp8 by itself
+        # So we don't need to convert to fp8 here
+        outputs = flash_attn_interface_func(
+            q, k, v, **kwargs,
+        )
+    else:
+        dtype = torch.float8_e4m3fn
+        outputs = flash_attn_interface_func(
+            q.to(dtype), k.to(dtype), v.to(dtype), **kwargs,
+        )[0]
 
-    return outputs.contiguous().to(torch.bfloat16) if is_hip() else outputs[0]
+    return outputs.contiguous().to(torch.bfloat16) if is_hip() else outputs
 
 @flash_attn_func.register_fake
 def _(q, k, v, **kwargs):
@@ -76,9 +82,6 @@ def _(q, k, v, **kwargs):
     # 2. softmax_lse: (batch, num_heads, seq_len) with dtype=torch.float32
     meta_q = torch.empty_like(q).contiguous()
     return meta_q #, q.new_empty((q.size(0), q.size(2), q.size(1)), dtype=torch.float32)
-
-# fake_input = [torch.randn((1, 4608, 24, 128), device="cuda", dtype=torch.float32) for _ in range(3)]
-# torch.library.opcheck(flash_attn_func, fake_input)
 
 # Copied FusedFluxAttnProcessor2_0 but using flash v3 instead of SDPA
 class FlashFusedFluxAttnProcessor3_0:
@@ -231,6 +234,8 @@ def cudagraph(f):
 def use_compile(pipeline):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
     is_kontext = "Kontext" in pipeline.__class__.__name__
+    # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
+    # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
     pipeline.transformer = torch.compile(
         pipeline.transformer, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
     )

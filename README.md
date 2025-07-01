@@ -94,6 +94,8 @@ pip install --pre torch==2.8.0.dev20250605+cu126 --index-url https://download.py
 pip install --pre torchao==0.12.0.dev20250609+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
 ```
 
+(For NVIDIA) To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
+
 To install deps on AMD:
 ```
 pip install -U diffusers
@@ -102,7 +104,7 @@ pip install --pre torchao==0.12.0.dev20250609+rocm6.4 --index-url https://downlo
 pip install git+https://github.com/ROCm/aiter
 ```
 
-(For NVIDIA) To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
+(For AMD) Instead of flash attention v3, we use (AITER)[https://github.com/ROCm/aiter]. It provides the required fp8 MHA kernels  
 
 For hardware, we used a 96GB 700W H100 GPU and 192GB MI300X GPU. Some of the optimizations applied (BFloat16, torch.compile, Combining q,k,v projections, dynamic float8 quantization) are available on CPU as well.
 
@@ -128,7 +130,7 @@ On AMD:
 ```sh
 python gen_image.py --prompt "A cat playing with a ball of yarn" --output-file output.png --compile_export_mode compile
 ```
-This will include all optimizations except the `torch.export` + AOTI ones.
+Currently, only torch.export is not working as expected. Instead, use `torch.compile` as shown in the above command.
 
 
 ## Benchmarking
