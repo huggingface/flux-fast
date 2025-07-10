@@ -44,7 +44,7 @@ Summary of the optimizations:
     * `coordinate_descent_tuning = True`
     * `coordinate_descent_check_all_directions = True`
 * `torch.export` + Ahead-of-time Inductor (AOTI) + CUDAGraphs
-* Almost lossless cache acceleration with `cache-dit: DBCache + F12B12`
+* Cache Acceleration with `cache-dit: DBCache + F12B12`
 
 All of the above optimizations are lossless (outside of minor numerical differences sometimes
 introduced through the use of `torch.compile` / `torch.export`) EXCEPT FOR dynamic float8 quantization.
