@@ -686,7 +686,7 @@ pipeline = FluxPipeline.from_pretrained(
     torch_dtype=torch.bfloat16,
 ).to("cuda")
 
-# Custom options, F8B16, higher precision
+# Custom options, F12B12, higher precision
 cache_options = {
     "cache_type": CacheType.DBCache,
     "warmup_steps": 8,
@@ -702,6 +702,7 @@ apply_cache_on_pipe(pipeline, **cache_options)
 By the way, `cache-dit` is designed to work compatibly with torch.compile. You can easily use `cache-dit` with torch.compile to further achieve a better performance. For example:
 
 ```python
+# Custom options, F12B12, higher precision
 cache_options = {
     "cache_type": CacheType.DBCache,
     "warmup_steps": 8,
