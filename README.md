@@ -145,7 +145,7 @@ usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--cache-dir CACHE_
                         [--output-file OUTPUT_FILE] [--trace-file TRACE_FILE] [--disable_bf16]
                         [--compile_export_mode {compile,export_aoti,disabled}]
                         [--disable_fused_projections] [--disable_channels_last] [--disable_fa3]
-                        [--disable_quant] [--disable_inductor_tuning_flags]
+                        [--disable_quant] [--disable_inductor_tuning_flags] [--disable_cache_dit]
 
 options:
   -h, --help            show this help message and exit
@@ -173,6 +173,8 @@ options:
   --disable_quant       Disables usage of dynamic float8 quantization (default: False)
   --disable_inductor_tuning_flags
                         Disables use of inductor tuning flags (default: False)
+  --disable_cache_dit
+                        Disables use of cache-dit: DBCache F12B12 (default: False)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:
@@ -714,8 +716,16 @@ cache_options = {
 
 apply_cache_on_pipe(pipeline, **cache_options)
 
-# Compile the Transformer module
-pipeline.transformer = torch.compile(pipeline.transformer)
+# Compile transformer w/o fullgraph and cudagraphs if cache-dit is enabled.
+# The cache-dit relies heavily on dynamic Python operations to maintain the cache_context, 
+# so it is necessary to introduce graph breaks at appropriate positions to be compatible 
+# with torch.compile. Thus, we compile the transformer with `max-autotune-no-cudagraphs` 
+# mode if cache-dit is enabled. Otherwise, we compile with `max-autotune` mode.
+pipeline.transformer = torch.compile(
+    pipeline.transformer, 
+    mode="max-autotune-no-cudagraphs", 
+    fullgraph=False, 
+)
 ```
 However, users intending to use `cache-dit` for DiT with dynamic input shapes should consider increasing the recompile limit of torch._dynamo. Otherwise, the recompile_limit error may be triggered, causing the module to fall back to eager mode.
 
@@ -723,5 +733,11 @@ However, users intending to use `cache-dit` for DiT with dynamic input shapes sh
 torch._dynamo.config.recompile_limit = 96  # default is 8
 torch._dynamo.config.accumulated_recompile_limit = 2048  # default is 256
 ```
+
+|BF16|BF16 + cache-dit|BF16 + cache-dit + compile|
+|:---:|:---:|:---:|
+|![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![output_cache](https://github.com/user-attachments/assets/99b0abbc-3615-4e92-9b0f-c6c45ae6d24e)|![output_cache_compile](https://github.com/user-attachments/assets/51db9a6f-e586-4ee2-87cb-558c418a4fc0)
+|L20: 24.94s|L20: 19.95s|L20: 17.39s|
+|-|PSNR: 34.23|PSNR: 33.62|
 
 </details>
