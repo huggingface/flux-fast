@@ -44,6 +44,7 @@ Summary of the optimizations:
     * `coordinate_descent_tuning = True`
     * `coordinate_descent_check_all_directions = True`
 * `torch.export` + Ahead-of-time Inductor (AOTI) + CUDAGraphs
+* Almost lossless cache acceleration with `cache-dit: DBCache + F12B12`
 
 All of the above optimizations are lossless (outside of minor numerical differences sometimes
 introduced through the use of `torch.compile` / `torch.export`) EXCEPT FOR dynamic float8 quantization.
@@ -664,6 +665,34 @@ pipeline = use_export_aoti(pipeline, cache_dir=args.cache_dir, serialize=False)
 
 prompt = "A cat playing with a ball of yarn"
 image = pipe(prompt, num_inference_steps=4).images[0]
+```
+
+</details>
+
+
+<details>
+  <summary>Cache Acceleration with cache-dit: DBCache + F12B12</summary>
+
+```python
+# cache-dit: DBCache F12B12
+if not args.disable_cache_dit:
+    try:
+        from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
+        # docs: https://github.com/vipshop/cache-dit
+        cache_options = {
+            "cache_type": CacheType.DBCache,
+            "warmup_steps": 8,
+            "max_cached_steps": 8,
+            "Fn_compute_blocks": 12,
+            "Bn_compute_blocks": 12,
+            "residual_diff_threshold": 0.12,
+        }
+        apply_cache_on_pipe(pipeline, **cache_options)
+    except ImportError:
+        print(
+            "Please install cache-dit via 'pip install -U cache-dit'"
+        )
+        pass
 ```
 
 </details>
