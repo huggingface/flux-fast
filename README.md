@@ -673,26 +673,46 @@ image = pipe(prompt, num_inference_steps=4).images[0]
 <details>
   <summary>Cache Acceleration with cache-dit: DBCache + F12B12</summary>
 
+You can use `cache-dit` to further speedup FLUX model. For example:
+
 ```python
 # cache-dit: DBCache F12B12
-if not args.disable_cache_dit:
-    try:
-        from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
-        # docs: https://github.com/vipshop/cache-dit
-        cache_options = {
-            "cache_type": CacheType.DBCache,
-            "warmup_steps": 8,
-            "max_cached_steps": 8,
-            "Fn_compute_blocks": 12,
-            "Bn_compute_blocks": 12,
-            "residual_diff_threshold": 0.12,
-        }
-        apply_cache_on_pipe(pipeline, **cache_options)
-    except ImportError:
-        print(
-            "Please install cache-dit via 'pip install -U cache-dit'"
-        )
-        pass
+# install: pip install -U cache-dit
+from diffusers import FluxPipeline
+from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
+
+pipeline = FluxPipeline.from_pretrained(
+    "black-forest-labs/FLUX.1-dev",
+    torch_dtype=torch.bfloat16,
+).to("cuda")
+
+# Custom options, F8B16, higher precision
+cache_options = {
+    "cache_type": CacheType.DBCache,
+    "warmup_steps": 8,
+    "max_cached_steps": 8,    # -1 means no limit
+    "Fn_compute_blocks": 12,  # Fn, F12, etc.
+    "Bn_compute_blocks": 12,  # Bn, B12, etc.
+    "residual_diff_threshold": 0.12,
+}
+
+apply_cache_on_pipe(pipeline, **cache_options)
+```
+
+By the way, `cache-dit` is designed to work compatibly with torch.compile. You can easily use `cache-dit` with torch.compile to further achieve a better performance. For example:
+
+```python
+apply_cache_on_pipe(
+    pipe, **CacheType.default_options(CacheType.DBPrune)
+)
+# Compile the Transformer module
+pipe.transformer = torch.compile(pipe.transformer)
+```
+However, users intending to use `cache-dit` for DiT with dynamic input shapes should consider increasing the recompile limit of torch._dynamo. Otherwise, the recompile_limit error may be triggered, causing the module to fall back to eager mode.
+
+```python
+torch._dynamo.config.recompile_limit = 96  # default is 8
+torch._dynamo.config.accumulated_recompile_limit = 2048  # default is 256
 ```
 
 </details>
