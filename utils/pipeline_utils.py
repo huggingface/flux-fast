@@ -234,10 +234,15 @@ def cudagraph(f):
 def use_compile(pipeline):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
     is_kontext = "Kontext" in pipeline.__class__.__name__
+    # Compile transformer w/o fullgraph and cudagraphs if cache-dit is enabled.
+    is_cached = getattr(pipeline.transformer, "_is_cached", False)
     # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
     # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
     pipeline.transformer = torch.compile(
-        pipeline.transformer, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
+        pipeline.transformer, 
+        mode="max-autotune" if not is_cached else "max-autotune-no-cudagraphs", 
+        fullgraph=(True if not is_cached else False), 
+        dynamic=True if is_hip() else None
     )
     pipeline.vae.decode = torch.compile(
         pipeline.vae.decode, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
