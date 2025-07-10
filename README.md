@@ -702,9 +702,17 @@ apply_cache_on_pipe(pipeline, **cache_options)
 By the way, `cache-dit` is designed to work compatibly with torch.compile. You can easily use `cache-dit` with torch.compile to further achieve a better performance. For example:
 
 ```python
-apply_cache_on_pipe(
-    pipe, **CacheType.default_options(CacheType.DBPrune)
-)
+cache_options = {
+    "cache_type": CacheType.DBCache,
+    "warmup_steps": 8,
+    "max_cached_steps": 8,    # -1 means no limit
+    "Fn_compute_blocks": 12,  # Fn, F12, etc.
+    "Bn_compute_blocks": 12,  # Bn, B12, etc.
+    "residual_diff_threshold": 0.12,
+}
+
+apply_cache_on_pipe(pipeline, **cache_options)
+
 # Compile the Transformer module
 pipe.transformer = torch.compile(pipe.transformer)
 ```
