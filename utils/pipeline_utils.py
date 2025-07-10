@@ -387,6 +387,26 @@ def optimize(pipeline, args):
     # switch memory layout to channels_last
     if not args.disable_channels_last:
         pipeline.vae.to(memory_format=torch.channels_last)
+    
+    # cache-dit: DBCache F12B12
+    if not args.disable_cache_dit:
+        try:
+            from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
+            # docs: https://github.com/vipshop/cache-dit
+            cache_options = {
+                "cache_type": CacheType.DBCache,
+                "warmup_steps": 8,
+                "max_cached_steps": 8,
+                "Fn_compute_blocks": 12,
+                "Bn_compute_blocks": 12,
+                "residual_diff_threshold": 0.12,
+            }
+            apply_cache_on_pipe(pipeline, **cache_options)
+        except ImportError:
+            print(
+                "Please install cache-dit via 'pip install -U cache-dit'"
+            )
+            pass
 
     # apply float8 quantization
     if not args.disable_quant:
