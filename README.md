@@ -714,7 +714,7 @@ cache_options = {
 apply_cache_on_pipe(pipeline, **cache_options)
 
 # Compile the Transformer module
-pipe.transformer = torch.compile(pipe.transformer)
+pipeline.transformer = torch.compile(pipeline.transformer)
 ```
 However, users intending to use `cache-dit` for DiT with dynamic input shapes should consider increasing the recompile limit of torch._dynamo. Otherwise, the recompile_limit error may be triggered, causing the module to fall back to eager mode.
 
