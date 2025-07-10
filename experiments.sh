@@ -25,17 +25,6 @@ python run_benchmark.py \
     --disable_cache_dit \
     > bf16.txt 2>&1
 
-# bfloat16 + cache-dit
-python run_benchmark.py \
-    --trace-file bfloat16.json.gz \
-    --compile_export_mode disabled \
-    --disable_fused_projections \
-    --disable_channels_last \
-    --disable_fa3 \
-    --disable_quant \
-    --disable_inductor_tuning_flags \
-    > bf16_cache_dit.txt 2>&1
-
 # bfloat16 + torch.compile
 python run_benchmark.py \
     --trace-file bf16_compile.json.gz \
