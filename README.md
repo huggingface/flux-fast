@@ -173,8 +173,7 @@ options:
   --disable_quant       Disables usage of dynamic float8 quantization (default: False)
   --disable_inductor_tuning_flags
                         Disables use of inductor tuning flags (default: False)
-  --disable_cache_dit
-                        Disables use of cache-dit: DBCache F12B12 (default: False)
+  --disable_cache_dit   Disables use of cache-dit: DBCache F12B12 (default: False)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:
@@ -675,11 +674,10 @@ image = pipe(prompt, num_inference_steps=4).images[0]
 <details>
   <summary>Cache Acceleration with cache-dit: DBCache + F12B12</summary>
 
-You can use `cache-dit` to further speedup FLUX model. For example:
+You can use `cache-dit` to further speedup FLUX model, different configurations of compute blocks (F12B12, etc.) can be customized in cache-dit: DBCache. Please check [cache-dit](https://github.com/vipshop/cache-dit) for more details. For example:
 
 ```python
-# cache-dit: DBCache F12B12
-# install: pip install -U cache-dit
+# Install: pip install -U cache-dit
 from diffusers import FluxPipeline
 from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
 
@@ -688,7 +686,7 @@ pipeline = FluxPipeline.from_pretrained(
     torch_dtype=torch.bfloat16,
 ).to("cuda")
 
-# Custom options, F12B12, higher precision
+# cache-dit: DBCache F12B12
 cache_options = {
     "cache_type": CacheType.DBCache,
     "warmup_steps": 8,
@@ -704,19 +702,8 @@ apply_cache_on_pipe(pipeline, **cache_options)
 By the way, `cache-dit` is designed to work compatibly with torch.compile. You can easily use `cache-dit` with torch.compile to further achieve a better performance. For example:
 
 ```python
-# Custom options, F12B12, higher precision
-cache_options = {
-    "cache_type": CacheType.DBCache,
-    "warmup_steps": 8,
-    "max_cached_steps": 8,    # -1 means no limit
-    "Fn_compute_blocks": 12,  # Fn, F12, etc.
-    "Bn_compute_blocks": 12,  # Bn, B12, etc.
-    "residual_diff_threshold": 0.12,
-}
-
 apply_cache_on_pipe(pipeline, **cache_options)
 
-# Compile transformer w/o fullgraph and cudagraphs if cache-dit is enabled.
 # The cache-dit relies heavily on dynamic Python operations to maintain the cache_context, 
 # so it is necessary to introduce graph breaks at appropriate positions to be compatible 
 # with torch.compile. Thus, we compile the transformer with `max-autotune-no-cudagraphs` 
@@ -727,12 +714,7 @@ pipeline.transformer = torch.compile(
     fullgraph=False, 
 )
 ```
-However, users intending to use `cache-dit` for DiT with dynamic input shapes should consider increasing the recompile limit of torch._dynamo. Otherwise, the recompile_limit error may be triggered, causing the module to fall back to eager mode.
 
-```python
-torch._dynamo.config.recompile_limit = 96  # default is 8
-torch._dynamo.config.accumulated_recompile_limit = 2048  # default is 256
-```
 
 |BF16|BF16 + cache-dit|BF16 + cache-dit + compile|
 |:---:|:---:|:---:|
