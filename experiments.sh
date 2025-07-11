@@ -72,7 +72,6 @@ python run_benchmark.py \
 python run_benchmark.py \
     --trace-file bf16_compile_qkv_chan_fa3_quant_flags.json.gz \
     --compile_export_mode compile \
-    --disable_cache_dit \
     > bf16_compile_qkv_chan_fa3_quant_flags.txt 2>&1
 
 # fully optimized (torch.export + AOTI to address cold start)
