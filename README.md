@@ -718,7 +718,7 @@ pipeline.transformer = torch.compile(
 
 |BF16|BF16 + cache-dit|BF16 + cache-dit + compile|
 |:---:|:---:|:---:|
-|![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![output_cache](https://github.com/user-attachments/assets/99b0abbc-3615-4e92-9b0f-c6c45ae6d24e)|![output_cache_compile](https://github.com/user-attachments/assets/51db9a6f-e586-4ee2-87cb-558c418a4fc0)
+|![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![output_cache](https://github.com/user-attachments/assets/99b0abbc-3615-4e92-9b0f-c6c45ae6d24e)|![output_cache_compile](https://github.com/user-attachments/assets/f02243ed-4887-468d-874f-6e619af6d5cf)
 |L20: 24.94s|L20: 19.95s|L20: 17.39s|
 |-|PSNR: 34.23|PSNR: 33.62|
 
