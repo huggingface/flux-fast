@@ -1,1 +1,5 @@
 *.pyc
+*.txt
+*.json.gz
+*.png
+black-forest-labs
