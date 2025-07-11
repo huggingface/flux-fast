@@ -16,7 +16,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16.txt 2>&1
 
@@ -31,7 +30,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16_compile.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile.txt 2>&1
 
@@ -45,7 +43,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16_compile_qkv.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile_qkv.txt 2>&1
 
@@ -58,7 +55,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16_compile_qkv_chan.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile_qkv_chan.txt 2>&1
 
@@ -70,7 +66,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16_compile_qkv_chan_fa3.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile_qkv_chan_fa3.txt 2>&1
 
@@ -81,7 +76,6 @@ python run_benchmark.py \
     --disable_inductor_tuning_flags \
     --output-file bf16_compile_qkv_chan_fa3_quant.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile_qkv_chan_fa3_quant.txt 2>&1
 
@@ -91,7 +85,6 @@ python run_benchmark.py \
     --compile_export_mode compile \
     --output-file bf16_compile_qkv_chan_fa3_quant_flags.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > bf16_compile_qkv_chan_fa3_quant_flags.txt 2>&1
 
@@ -99,6 +92,5 @@ python run_benchmark.py \
 python run_benchmark.py --ckpt $CKPT --image $IMAGE --prompt "$PROMPT" \
     --output-file fully_optimized.png \
     --num_inference_steps 28 \
-    --disable_cache_dit \
     --cache-dir $CACHE_DIR \
     > fully_optimized.txt 2>&1

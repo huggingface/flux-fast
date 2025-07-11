@@ -145,7 +145,7 @@ usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--cache-dir CACHE_
                         [--output-file OUTPUT_FILE] [--trace-file TRACE_FILE] [--disable_bf16]
                         [--compile_export_mode {compile,export_aoti,disabled}]
                         [--disable_fused_projections] [--disable_channels_last] [--disable_fa3]
-                        [--disable_quant] [--disable_inductor_tuning_flags] [--disable_cache_dit]
+                        [--disable_quant] [--disable_inductor_tuning_flags] [--enable_cache_dit]
 
 options:
   -h, --help            show this help message and exit
@@ -173,7 +173,7 @@ options:
   --disable_quant       Disables usage of dynamic float8 quantization (default: False)
   --disable_inductor_tuning_flags
                         Disables use of inductor tuning flags (default: False)
-  --disable_cache_dit   Disables use of cache-dit: DBCache F12B12 (default: False)
+  --enable_cache_dit    Enables use of cache-dit: DBCache F12B12 (default: False)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:
