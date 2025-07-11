@@ -718,7 +718,7 @@ pipeline.transformer = torch.compile(
 
 |BF16|BF16 + cache-dit|BF16 + cache-dit + compile|
 |:---:|:---:|:---:|
-|Baseline|PSNR: 34.23|PSNR: 34.16|
+|Baseline (FLUX.1-dev 28 steps)|PSNR: 34.23|PSNR: 34.16|
 |L20: 24.94s|L20: 20.85s|L20: 17.39s|
 |![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![output_cache](https://github.com/user-attachments/assets/99b0abbc-3615-4e92-9b0f-c6c45ae6d24e)|![output_cache_compile](https://github.com/user-attachments/assets/f02243ed-4887-468d-874f-6e619af6d5cf)
 
