@@ -192,7 +192,7 @@ options:
   --warmup_steps WARMUP_STEPS
                         Warmup steps of cache-dit: DBCache (default: 0)
   --max_cached_steps MAX_CACHED_STEPS
-                        Warmup steps of cache-dit: DBCache (default: -1)
+                        Max Cached steps of cache-dit: DBCache (default: -1)
   --residual_diff_threshold RESIDUAL_DIFF_THRESHOLD
                         Residual diff threshold of cache-dit: DBCache (default: 0.12)
   --enable_taylorsser   Enables use of cache-dit with TaylorSeer (default: False)
