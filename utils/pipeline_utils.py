@@ -231,7 +231,7 @@ def cudagraph(f):
     return f_
 
 
-def use_compile(pipeline):
+def use_compile(pipeline, args):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
     is_kontext = "Kontext" in pipeline.__class__.__name__
     # Compile transformer w/o fullgraph and cudagraphs if cache-dit is enabled.
@@ -240,14 +240,32 @@ def use_compile(pipeline):
     # with torch.compile. Thus, we compile the transformer with `max-autotune-no-cudagraphs` 
     # mode if cache-dit is enabled. Otherwise, we compile with `max-autotune` mode.
     is_cached = getattr(pipeline.transformer, "_is_cached", False)
-    # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
-    # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
-    pipeline.transformer = torch.compile(
-        pipeline.transformer, 
-        mode="max-autotune" if not is_cached else "max-autotune-no-cudagraphs", 
-        fullgraph=(True if not is_cached else False), 
-        dynamic=True if is_hip() else None
-    )
+    if not args.only_compile_transformer_blocks:
+        # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
+        # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
+        pipeline.transformer = torch.compile(
+            pipeline.transformer, 
+            mode="max-autotune" if not is_cached else "max-autotune-no-cudagraphs", 
+            fullgraph=(True if not is_cached else False), 
+            dynamic=True if is_hip() else None
+        )
+    else:
+        # Only compile transformer blocks not the whole model for 
+        # FluxTransformer2DModel to keep higher precision.
+        torch._dynamo.config.recompile_limit = 96  # default is 8
+        torch._dynamo.config.accumulated_recompile_limit = (
+            2048  # default is 256
+        )
+        for module in pipeline.transformer.transformer_blocks:
+            module.compile(
+                mode="max-autotune-no-cudagraphs", 
+                dynamic=True if is_hip() else None
+            )
+        for module in pipeline.transformer.single_transformer_blocks:
+            module.compile(
+                mode="max-autotune-no-cudagraphs", 
+                dynamic=True if is_hip() else None
+            )
     pipeline.vae.decode = torch.compile(
         pipeline.vae.decode, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
     )
@@ -441,7 +459,7 @@ def optimize(pipeline, args):
         # config.max_autotune_gemm_backends = "ATEN,TRITON,CPP,CUTLASS"
 
     if args.compile_export_mode == "compile":
-        pipeline = use_compile(pipeline)
+        pipeline = use_compile(pipeline, args)
     elif args.compile_export_mode == "export_aoti":
         if not args.enable_cache_dit:
             pipeline = use_export_aoti(
