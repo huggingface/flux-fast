@@ -443,12 +443,18 @@ def optimize(pipeline, args):
     if args.compile_export_mode == "compile":
         pipeline = use_compile(pipeline)
     elif args.compile_export_mode == "export_aoti":
-        pipeline = use_export_aoti(
-            pipeline,
-            cache_dir=args.cache_dir,
-            serialize=(not args.use_cached_model),
-            is_timestep_distilled=is_timestep_distilled
-        )
+        if not args.enable_cache_dit:
+            pipeline = use_export_aoti(
+                pipeline,
+                cache_dir=args.cache_dir,
+                serialize=(not args.use_cached_model),
+                is_timestep_distilled=is_timestep_distilled
+            )
+        else:
+            print(
+                "Currently, 'cache-dit' is incompatible with 'export_aoti'. "
+                "Please disable 'cache-dit' and re-run the export process."
+            )
     elif args.compile_export_mode == "disabled":
         pass
     else:
