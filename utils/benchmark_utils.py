@@ -60,13 +60,13 @@ def create_parser():
     # cache-dit: DBCache
     parser.add_argument("--enable_cache_dit", action="store_true",
                         help="Enables use of cache-dit: DBCache")
-    parser.add_argument("--Fn_compute_blocks", "--Fn", type=int, default=12,
+    parser.add_argument("--Fn_compute_blocks", "--Fn", type=int, default=1,
                         help="Fn compute blocks of cache-dit: DBCache")
-    parser.add_argument("--Bn_compute_blocks", "--Bn", type=int, default=12,
+    parser.add_argument("--Bn_compute_blocks", "--Bn", type=int, default=0,
                         help="Bn compute blocks of cache-dit: DBCache")
-    parser.add_argument("--warmup_steps", type=int, default=8,
+    parser.add_argument("--warmup_steps", type=int, default=0,
                         help="Warmup steps of cache-dit: DBCache")
-    parser.add_argument("--max_cached_steps", type=int, default=8,
+    parser.add_argument("--max_cached_steps", type=int, default=-1,
                         help="Warmup steps of cache-dit: DBCache")
     parser.add_argument("--residual_diff_threshold", type=float, default=0.12,
                         help="Residual diff threshold of cache-dit: DBCache")
