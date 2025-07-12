@@ -57,7 +57,7 @@ def create_parser():
     # flags for tuning inductor
     parser.add_argument("--disable_inductor_tuning_flags", action="store_true",
                         help="Disables use of inductor tuning flags")
-    # cache-dit: DBCache
+    # cache-dit: DBCache configs
     parser.add_argument("--enable_cache_dit", action="store_true",
                         help="Enables use of cache-dit: DBCache")
     parser.add_argument("--Fn_compute_blocks", "--Fn", type=int, default=1,
@@ -67,11 +67,11 @@ def create_parser():
     parser.add_argument("--warmup_steps", type=int, default=0,
                         help="Warmup steps of cache-dit: DBCache")
     parser.add_argument("--max_cached_steps", type=int, default=-1,
-                        help="Warmup steps of cache-dit: DBCache")
+                        help="Max Cached steps of cache-dit: DBCache")
     parser.add_argument("--residual_diff_threshold", type=float, default=0.12,
                         help="Residual diff threshold of cache-dit: DBCache")
     parser.add_argument("--enable_taylorsser", action="store_true",
-                        help="Enables use of cache-dit with TaylorSeer")
+                        help="Enables use of cache-dit: DBCache with TaylorSeer")
     return parser
 
 
