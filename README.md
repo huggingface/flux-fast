@@ -745,25 +745,13 @@ pipeline.transformer = torch.compile(
 )
 ```
 
-As you can see, under the configuration of `cache-dit + F1B0 + no warmup + TaylorSeer`, it only takes 7.42 seconds on NVIDIA L20, with a cumulative speedup of 3.36x (compared to the baseline of 24.94 seconds), while still maintaining high precision with a PSNR of 23.23.
+Under the configuration of `cache-dit + F1B0 + no warmup + TaylorSeer`, it only takes 7.42 seconds on NVIDIA L20, with a cumulative speedup of 3.36x (compared to the baseline of 24.94 seconds), while still maintaining high precision with a PSNR of 23.23.
 
-|BF16|BF16 + `cache-dit + F12B12 + warmup 8 steps`|BF16 + `cache-dit + F12B12 + warmup 8 steps` + compile|
+|BF16|BF16 + compile + qkv projection + channels_last + float8 quant + inductor flags|BF16 + compile + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F1B0 + no warmup + TaylorSeer` |  
 |:---:|:---:|:---:|
-|Baseline (FLUX.1-dev 28 steps)|PSNR: 34.23|PSNR: 34.16|
-|L20: 24.94s|L20: 20.85s|L20: 17.39s|
-|![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![output_cache](https://github.com/user-attachments/assets/99b0abbc-3615-4e92-9b0f-c6c45ae6d24e)|![output_cache_compile](https://github.com/user-attachments/assets/f02243ed-4887-468d-874f-6e619af6d5cf)|  
-|BF16 + compile| BF16 + compile + qkv projection + channels_last + float8 quant + inductor flags |BF16 + compile + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F12B12 + warmup 8 steps`|
-|PSNR: 19.28|PSNR: 18.07|PSNR: 22.24|
-|L20: 20.24s|L20: 13.29s|L20: 11.21s|
-|![bf16_compile](https://github.com/user-attachments/assets/a4bef05b-272d-42f7-ba02-6855731e6138)|![bf16_compile_qkv_chan_quant_flags](https://github.com/user-attachments/assets/5dc236e0-d2b4-43d1-bc60-ca9af51fd611)|![bf16_cache_compile_qkv_chan_quant_flags](https://github.com/user-attachments/assets/b96874a7-0224-41d7-be24-3f8810f9a4d3)|
-|BF16 + **compile transformer block only** | BF16 + **compile transformer block only** + qkv projection + channels_last + float8 quant + inductor flags |BF16 + **compile transformer block only** + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F12B12 + warmup 8 steps`|
-|PSNR: 39.72|PSNR: 21.77|PSNR: 21.89|
-|L20: 20.49s|L20: 13.26s |L20: 11.14s|
-|![bf16_compile_trn](https://github.com/user-attachments/assets/fa00a80f-b1cb-4c60-8bad-7fb369f0e280)|![bf16_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/958ae267-0351-4f85-b378-f863d9d3038c)|![bf16_cache_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/0ae9bf21-71d2-47d8-81e8-4fc7828dd801)|
-|BF16 + **compile transformer block only** + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F8B0 + no warmup` |BF16 + **compile transformer block only** + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F1B0 + no warmup` | BF16 + **compile transformer block only** + qkv projection + channels_last + float8 quant + inductor flags + `cache-dit + F1B0 + no warmup + TaylorSeer` |
-|PSNR: 21.82|PSNR: 20.93|PSNR: 23.23|
-|L20: 8.98s|L20: 7.41s |L20: 7.42s|  
-|![bf16_cache_F8B0W0M0_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/996f9dea-4fe3-4c1b-8f86-c956f175d3d9)|![bf16_cache_F1B0W0M0_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/90c05c57-73f8-4acd-851e-ba7e8993ced8)|![bf16_cache_F1B0W0M0_taylorseer_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/aa7538b1-b0e8-4ea4-b9ca-0d32e946d5b8)|
+|Baseline (FLUX.1-dev 28 steps)|PSNR: 21.77|PSNR: 23.23|
+|L20: 24.94s|L20: 13.26s|L20: 7.42s|
+|![output](https://github.com/user-attachments/assets/4a9237c5-5736-483b-85f7-38ab6c417009)|![bf16_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/958ae267-0351-4f85-b378-f863d9d3038c)|![bf16_cache_F1B0W0M0_taylorseer_compile_qkv_chan_quant_flags_trn](https://github.com/user-attachments/assets/aa7538b1-b0e8-4ea4-b9ca-0d32e946d5b8)|
 
 ### Important Notes
 
