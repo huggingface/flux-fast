@@ -186,13 +186,13 @@ options:
                         Disables use of inductor tuning flags (default: False)
   --enable_cache_dit    Enables use of cache-dit: DBCache (default: False)
   --Fn_compute_blocks FN_COMPUTE_BLOCKS, --Fn FN_COMPUTE_BLOCKS
-                        Fn compute blocks of cache-dit: DBCache (default: 12)
+                        Fn compute blocks of cache-dit: DBCache (default: 1)
   --Bn_compute_blocks BN_COMPUTE_BLOCKS, --Bn BN_COMPUTE_BLOCKS
-                        Bn compute blocks of cache-dit: DBCache (default: 12)
+                        Bn compute blocks of cache-dit: DBCache (default: 0)
   --warmup_steps WARMUP_STEPS
-                        Warmup steps of cache-dit: DBCache (default: 8)
+                        Warmup steps of cache-dit: DBCache (default: 0)
   --max_cached_steps MAX_CACHED_STEPS
-                        Warmup steps of cache-dit: DBCache (default: 8)
+                        Warmup steps of cache-dit: DBCache (default: -1)
   --residual_diff_threshold RESIDUAL_DIFF_THRESHOLD
                         Residual diff threshold of cache-dit: DBCache (default: 0.12)
   --enable_taylorsser   Enables use of cache-dit with TaylorSeer (default: False)
