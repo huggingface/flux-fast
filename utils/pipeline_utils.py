@@ -415,7 +415,7 @@ def optimize(pipeline, args):
     if not args.disable_channels_last:
         pipeline.vae.to(memory_format=torch.channels_last)
     
-    # cache-dit: DBCache F12B12
+    # cache-dit: DBCache configs
     if args.enable_cache_dit:
         try:
             from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
