@@ -1,4 +1,4 @@
-# flux-fast
+# flux-fast  
 Making Flux go brrr on GPUs. With simple recipes from this repo, we enabled ~2.5x speedup on Flux.1-Schnell and Flux.1-Dev using (mainly) pure PyTorch code and a beefy GPU like H100. This repo is NOT meant to be a library or an out-of-the-box solution. So, please fork the repo, hack into the code, and share your results 🤗
 
 Check out the accompanying blog post [here](https://pytorch.org/blog/presenting-flux-fast-making-flux-go-brrr-on-h100s/).
@@ -44,7 +44,7 @@ Summary of the optimizations:
     * `coordinate_descent_tuning = True`
     * `coordinate_descent_check_all_directions = True`
 * `torch.export` + Ahead-of-time Inductor (AOTI) + CUDAGraphs
-* Cache Acceleration with `cache-dit: DBCache + F12B12`
+* cache acceleration with `cache-dit: DBCache`
 
 All of the above optimizations are lossless (outside of minor numerical differences sometimes
 introduced through the use of `torch.compile` / `torch.export`) EXCEPT FOR dynamic float8 quantization.
@@ -94,7 +94,7 @@ To install deps on NVIDIA:
 pip install -U huggingface_hub[hf_xet] accelerate transformers
 pip install -U diffusers
 pip install --pre torch==2.8.0.dev20250605+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
-pip install --pre torchao==0.12.0.dev20250609+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
+pip install --pre torchao==0.12.0.dev20250610+cu126 --index-url https://download.pytorch.org/whl/nightly/cu126
 ```
 
 (For NVIDIA) To install flash attention v3, follow the instructions in https://github.com/Dao-AILab/flash-attention#flashattention-3-beta-release.
@@ -103,7 +103,7 @@ To install deps on AMD:
 ```
 pip install -U diffusers
 pip install --pre torch==2.8.0.dev20250605+rocm6.4 --index-url https://download.pytorch.org/whl/nightly/rocm6.4
-pip install --pre torchao==0.12.0.dev20250609+rocm6.4 --index-url https://download.pytorch.org/whl/nightly/rocm6.4
+pip install --pre torchao==0.12.0.dev20250610+rocm6.4 --index-url https://download.pytorch.org/whl/nightly/rocm6.4
 pip install git+https://github.com/ROCm/aiter
 ```
 
@@ -140,33 +140,40 @@ Currently, only torch.export is not working as expected. Instead, use `torch.com
 [`run_benchmark.py`](./run_benchmark.py) is the main script for benchmarking the different optimization techniques.
 Usage:
 ```
-usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--cache-dir CACHE_DIR]
-                        [--device {cuda,cpu}] [--num_inference_steps NUM_INFERENCE_STEPS]
-                        [--output-file OUTPUT_FILE] [--trace-file TRACE_FILE] [--disable_bf16]
-                        [--compile_export_mode {compile,export_aoti,disabled}]
-                        [--only_compile_transformer_blocks] [--disable_fused_projections]
-                        [--disable_channels_last] [--disable_fa3]
-                        [--disable_quant] [--disable_inductor_tuning_flags]
-                        [--enable_cache_dit]
+usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--image IMAGE] [--cache-dir CACHE_DIR]
+                        [--use-cached-model] [--device {cuda,cpu}] [--num_inference_steps NUM_INFERENCE_STEPS] 
+                        [--output-file OUTPUT_FILE] [--seed SEED] [--trace-file TRACE_FILE] [--disable_bf16]
+                        [--compile_export_mode {compile,export_aoti,disabled}] 
+                        [--only_compile_transformer_blocks] [--disable_fused_projections] 
+                        [--disable_channels_last] [--disable_fa3] [--disable_quant]
+                        [--disable_inductor_tuning_flags] [--enable_cache_dit] 
+                        [--Fn_compute_blocks FN_COMPUTE_BLOCKS] 
+                        [--Bn_compute_blocks BN_COMPUTE_BLOCKS] 
+                        [--warmup_steps WARMUP_STEPS]
+                        [--max_cached_steps MAX_CACHED_STEPS] 
+                        [--residual_diff_threshold RESIDUAL_DIFF_THRESHOLD] 
+                        [--enable_taylorsser]
 
 options:
   -h, --help            show this help message and exit
-  --ckpt CKPT           Model checkpoint path (default: black-forest-labs/FLUX.1-schnell)
+  --ckpt {black-forest-labs/FLUX.1-schnell,black-forest-labs/FLUX.1-dev,black-forest-labs/FLUX.1-Kontext-dev}
+                        Model checkpoint path (default: black-forest-labs/FLUX.1-schnell)
   --prompt PROMPT       Text prompt (default: A cat playing with a ball of yarn)
+  --image IMAGE         Image to use for Kontext (default: None)
   --cache-dir CACHE_DIR
-                        Cache directory for storing exported models (default:
-                        ~/.cache/flux-fast)
+                        Cache directory for storing exported models (default: /root/.cache/flux-fast)
+  --use-cached-model    Attempt to use cached model only (don't re-export) (default: False)
   --device {cuda,cpu}   Device to use (default: cuda)
   --num_inference_steps NUM_INFERENCE_STEPS
                         Number of denoising steps (default: 4)
   --output-file OUTPUT_FILE
                         Output image file path (default: output.png)
+  --seed SEED           Random seed to use (default: 42)
   --trace-file TRACE_FILE
                         Output PyTorch Profiler trace file path (default: None)
   --disable_bf16        Disables usage of torch.bfloat16 (default: False)
   --compile_export_mode {compile,export_aoti,disabled}
-                        Configures how torch.compile or torch.export + AOTI are used (default:
-                        export_aoti)
+                        Configures how torch.compile or torch.export + AOTI are used (default: export_aoti)
   --only_compile_transformer_blocks
                         Only compile Transformer Blocks for higher precision (default: False)
   --disable_fused_projections
@@ -177,7 +184,18 @@ options:
   --disable_quant       Disables usage of dynamic float8 quantization (default: False)
   --disable_inductor_tuning_flags
                         Disables use of inductor tuning flags (default: False)
-  --enable_cache_dit    Enables use of cache-dit: DBCache F12B12 (default: False)
+  --enable_cache_dit    Enables use of cache-dit: DBCache (default: False)
+  --Fn_compute_blocks FN_COMPUTE_BLOCKS, --Fn FN_COMPUTE_BLOCKS
+                        Fn compute blocks of cache-dit: DBCache (default: 12)
+  --Bn_compute_blocks BN_COMPUTE_BLOCKS, --Bn BN_COMPUTE_BLOCKS
+                        Bn compute blocks of cache-dit: DBCache (default: 12)
+  --warmup_steps WARMUP_STEPS
+                        Warmup steps of cache-dit: DBCache (default: 8)
+  --max_cached_steps MAX_CACHED_STEPS
+                        Warmup steps of cache-dit: DBCache (default: 8)
+  --residual_diff_threshold RESIDUAL_DIFF_THRESHOLD
+                        Residual diff threshold of cache-dit: DBCache (default: 0.12)
+  --enable_taylorsser   Enables use of cache-dit with TaylorSeer (default: False)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:
@@ -676,7 +694,7 @@ image = pipe(prompt, num_inference_steps=4).images[0]
 
 
 <details>
-  <summary>Cache Acceleration with cache-dit: DBCache + F12B12</summary>
+  <summary>cache acceleration with cache-dit: DBCache</summary>
 
 You can use `cache-dit` to further speedup FLUX model, different configurations of compute blocks (F12B12, etc.) can be customized in cache-dit: DBCache. Please check [cache-dit](https://github.com/vipshop/cache-dit) for more details. For example:
 

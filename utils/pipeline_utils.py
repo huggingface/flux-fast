@@ -422,11 +422,19 @@ def optimize(pipeline, args):
             # docs: https://github.com/vipshop/cache-dit
             cache_options = {
                 "cache_type": CacheType.DBCache,
-                "warmup_steps": 8,
-                "max_cached_steps": 8,
-                "Fn_compute_blocks": 12,
-                "Bn_compute_blocks": 12,
-                "residual_diff_threshold": 0.12,
+                "warmup_steps": args.warmup_steps,
+                "max_cached_steps": args.max_cached_steps,
+                "Fn_compute_blocks": args.Fn_compute_blocks,
+                "Bn_compute_blocks": args.Bn_compute_blocks,
+                "residual_diff_threshold": args.residual_diff_threshold,
+                # TaylorSeer options
+                "enable_taylorseer": args.enable_taylorsser,
+                "enable_encoder_taylorseer": args.enable_taylorsser,
+                # Taylorseer cache type cache be hidden_states or residual
+                "taylorseer_cache_type": "residual",
+                "taylorseer_kwargs": {
+                    "n_derivatives": 2,
+                },
             }
             apply_cache_on_pipe(pipeline, **cache_options)
         except ImportError:
