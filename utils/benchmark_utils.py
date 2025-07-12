@@ -39,6 +39,9 @@ def create_parser():
     parser.add_argument("--compile_export_mode", type=str, default="export_aoti",
                         choices=["compile", "export_aoti", "disabled"],
                         help="Configures how torch.compile or torch.export + AOTI are used")
+    # only compile transformer blocks
+    parser.add_argument("--only_compile_transformer_blocks", action="store_true",
+                        help="Only compile Transformer Blocks for higher precision")
     # fused (q, k, v) projections
     parser.add_argument("--disable_fused_projections", action="store_true",
                         help="Disables fused q,k,v projections")
