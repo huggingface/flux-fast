@@ -144,8 +144,10 @@ usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--cache-dir CACHE_
                         [--device {cuda,cpu}] [--num_inference_steps NUM_INFERENCE_STEPS]
                         [--output-file OUTPUT_FILE] [--trace-file TRACE_FILE] [--disable_bf16]
                         [--compile_export_mode {compile,export_aoti,disabled}]
-                        [--disable_fused_projections] [--disable_channels_last] [--disable_fa3]
-                        [--disable_quant] [--disable_inductor_tuning_flags] [--enable_cache_dit]
+                        [--only_compile_transformer_blocks] [--disable_fused_projections]
+                        [--disable_channels_last] [--disable_fa3]
+                        [--disable_quant] [--disable_inductor_tuning_flags]
+                        [--enable_cache_dit]
 
 options:
   -h, --help            show this help message and exit
@@ -165,6 +167,8 @@ options:
   --compile_export_mode {compile,export_aoti,disabled}
                         Configures how torch.compile or torch.export + AOTI are used (default:
                         export_aoti)
+  --only_compile_transformer_blocks
+                        Only compile Transformer Blocks for higher precision (default: False)
   --disable_fused_projections
                         Disables fused q,k,v projections (default: False)
   --disable_channels_last
