@@ -428,8 +428,8 @@ def optimize(pipeline, args):
                 "Bn_compute_blocks": args.Bn_compute_blocks,
                 "residual_diff_threshold": args.residual_diff_threshold,
                 # TaylorSeer options
-                "enable_taylorseer": args.enable_taylorsser,
-                "enable_encoder_taylorseer": args.enable_taylorsser,
+                "enable_taylorseer": args.enable_taylorseer,
+                "enable_encoder_taylorseer": args.enable_taylorseer,
                 # Taylorseer cache type cache be hidden_states or residual
                 "taylorseer_cache_type": "residual",
                 "taylorseer_kwargs": {

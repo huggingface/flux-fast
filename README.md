@@ -152,7 +152,7 @@ usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--image IMAGE] [--
                         [--warmup_steps WARMUP_STEPS]
                         [--max_cached_steps MAX_CACHED_STEPS] 
                         [--residual_diff_threshold RESIDUAL_DIFF_THRESHOLD] 
-                        [--enable_taylorsser]
+                        [--enable_taylorseer]
 
 options:
   -h, --help            show this help message and exit
@@ -195,7 +195,7 @@ options:
                         Max Cached steps of cache-dit: DBCache (default: -1)
   --residual_diff_threshold RESIDUAL_DIFF_THRESHOLD
                         Residual diff threshold of cache-dit: DBCache (default: 0.12)
-  --enable_taylorsser   Enables use of cache-dit: DBCache with TaylorSeer (default: False)
+  --enable_taylorseer   Enables use of cache-dit: DBCache with TaylorSeer (default: False)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:

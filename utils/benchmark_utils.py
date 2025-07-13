@@ -70,7 +70,7 @@ def create_parser():
                         help="Max Cached steps of cache-dit: DBCache")
     parser.add_argument("--residual_diff_threshold", type=float, default=0.12,
                         help="Residual diff threshold of cache-dit: DBCache")
-    parser.add_argument("--enable_taylorsser", action="store_true",
+    parser.add_argument("--enable_taylorseer", action="store_true",
                         help="Enables use of cache-dit: DBCache with TaylorSeer")
     return parser
 
