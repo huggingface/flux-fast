@@ -250,8 +250,11 @@ def use_compile(pipeline, args):
             dynamic=True if is_hip() else None
         )
     else:
-        # Only compile transformer blocks not the whole model for 
-        # FluxTransformer2DModel to keep higher precision.
+        # Only compile transformer blocks not the whole model for FluxTransformer2DModel 
+        # to keep higher precision. The impact on performance is negligible. However, 
+        # users should consider increasing the recompile limit of torch._dynamo. 
+        # Otherwise, the recompile_limit error may be triggered, causing the module 
+        # to fall back to eager mode.
         torch._dynamo.config.recompile_limit = 96  # default is 8
         torch._dynamo.config.accumulated_recompile_limit = (
             2048  # default is 256
@@ -437,11 +440,14 @@ def optimize(pipeline, args):
                 },
             }
             apply_cache_on_pipe(pipeline, **cache_options)
-        except ImportError:
+        except ImportError as e:
             print(
-                "Please install cache-dit via 'pip install -U cache-dit'"
+                "You have passed the '--enable_cache_dit' flag, but we cannot "
+                "find 'cache-dit' in your environment. Please install it via "
+                "'pip install -U cache-dit' first, or re-run the process without "
+                "the '--enable_cache_dit' flag."
             )
-            pass
+            raise e
 
     # apply float8 quantization
     if not args.disable_quant:
