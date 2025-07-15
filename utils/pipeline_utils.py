@@ -422,7 +422,7 @@ def optimize(pipeline, args):
     if args.enable_cache_dit:
         if args.ckpt.endswith("schnell"):
             print(
-                "cache-dit is not suitable for Flux Schnell with only 4 steps "
+                "cache-dit is not suitable for FLUX.1-schnell with only 4 steps "
                 "(there's no need to use cache either), please try FLUX.1-dev "
                 "or FLUX.1-Kontext-dev with 28 steps."
             )
