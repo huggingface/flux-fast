@@ -420,6 +420,12 @@ def optimize(pipeline, args):
     
     # cache-dit: DBCache configs
     if args.enable_cache_dit:
+        if args.ckpt.endswith("schnell"):
+            print(
+                "cache-dit is not suitable for Flux Schnell with only 4 steps "
+                "(there's no need to use cache either), please try FLUX.1-dev "
+                "or FLUX.1-Kontext-dev with 28 steps."
+            )
         try:
             from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
             # docs: https://github.com/vipshop/cache-dit
