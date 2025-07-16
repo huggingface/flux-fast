@@ -161,7 +161,7 @@ options:
   --prompt PROMPT       Text prompt (default: A cat playing with a ball of yarn)
   --image IMAGE         Image to use for Kontext (default: None)
   --cache-dir CACHE_DIR
-                        Cache directory for storing exported models (default: /root/.cache/flux-fast)
+                        Cache directory for storing exported models (default: ~/.cache/flux-fast)
   --use-cached-model    Attempt to use cached model only (don't re-export) (default: False)
   --device {cuda,cpu}   Device to use (default: cuda)
   --num_inference_steps NUM_INFERENCE_STEPS
