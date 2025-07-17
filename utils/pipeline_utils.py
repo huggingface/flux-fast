@@ -231,7 +231,7 @@ def cudagraph(f):
     return f_
 
 
-def use_compile(pipeline, args):
+def use_compile(pipeline):
     # Compile the compute-intensive portions of the model: denoising transformer / decoder
     is_kontext = "Kontext" in pipeline.__class__.__name__
     # Compile transformer w/o fullgraph and cudagraphs if cache-dit is enabled.
@@ -240,35 +240,14 @@ def use_compile(pipeline, args):
     # with torch.compile. Thus, we compile the transformer with `max-autotune-no-cudagraphs` 
     # mode if cache-dit is enabled. Otherwise, we compile with `max-autotune` mode.
     is_cached = getattr(pipeline.transformer, "_is_cached", False)
-    if not args.only_compile_transformer_blocks:
-        # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
-        # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
-        pipeline.transformer = torch.compile(
-            pipeline.transformer, 
-            mode="max-autotune" if not is_cached else "max-autotune-no-cudagraphs", 
-            fullgraph=(True if not is_cached else False), 
-            dynamic=True if is_hip() else None
-        )
-    else:
-        # Only compile transformer blocks not the whole model for FluxTransformer2DModel 
-        # to keep higher precision. The impact on performance is negligible. However, 
-        # users should consider increasing the recompile limit of torch._dynamo. 
-        # Otherwise, the recompile_limit error may be triggered, causing the module 
-        # to fall back to eager mode.
-        torch._dynamo.config.recompile_limit = 96  # default is 8
-        torch._dynamo.config.accumulated_recompile_limit = (
-            2048  # default is 256
-        )
-        for module in pipeline.transformer.transformer_blocks:
-            module.compile(
-                mode="max-autotune-no-cudagraphs", 
-                dynamic=True if is_hip() else None
-            )
-        for module in pipeline.transformer.single_transformer_blocks:
-            module.compile(
-                mode="max-autotune-no-cudagraphs", 
-                dynamic=True if is_hip() else None
-            )
+    # For AMD MI300X w/ the AITER kernels, the default dynamic=None is not working as expected, giving black results.
+    # Therefore, we use dynamic=True for AMD only. This leads to a small perf penalty, but should be fixed eventually. 
+    pipeline.transformer = torch.compile(
+        pipeline.transformer, 
+        mode="max-autotune" if not is_cached else "max-autotune-no-cudagraphs", 
+        fullgraph=(True if not is_cached else False), 
+        dynamic=True if is_hip() else None
+    )
     pipeline.vae.decode = torch.compile(
         pipeline.vae.decode, mode="max-autotune", fullgraph=True, dynamic=True if is_hip() else None
     )
@@ -427,24 +406,12 @@ def optimize(pipeline, args):
                 "or FLUX.1-Kontext-dev with 28 steps."
             )
         try:
-            from cache_dit.cache_factory import apply_cache_on_pipe, CacheType
             # docs: https://github.com/vipshop/cache-dit
-            cache_options = {
-                "cache_type": CacheType.DBCache,
-                "warmup_steps": args.warmup_steps,
-                "max_cached_steps": args.max_cached_steps,
-                "Fn_compute_blocks": args.Fn_compute_blocks,
-                "Bn_compute_blocks": args.Bn_compute_blocks,
-                "residual_diff_threshold": args.residual_diff_threshold,
-                # TaylorSeer options
-                "enable_taylorseer": args.enable_taylorseer,
-                "enable_encoder_taylorseer": args.enable_taylorseer,
-                # Taylorseer cache type cache be hidden_states or residual
-                "taylorseer_cache_type": "residual",
-                "taylorseer_kwargs": {
-                    "n_derivatives": 2,
-                },
-            }
+            from cache_dit.cache_factory import apply_cache_on_pipe
+            from cache_dit.cache_factory import load_cache_options_from_yaml
+            cache_options = load_cache_options_from_yaml(
+                args.cache_dit_config
+            )
             apply_cache_on_pipe(pipeline, **cache_options)
         except ImportError as e:
             print(
@@ -479,7 +446,7 @@ def optimize(pipeline, args):
         # config.max_autotune_gemm_backends = "ATEN,TRITON,CPP,CUTLASS"
 
     if args.compile_export_mode == "compile":
-        pipeline = use_compile(pipeline, args)
+        pipeline = use_compile(pipeline)
     elif args.compile_export_mode == "export_aoti":
         if not args.enable_cache_dit:
             pipeline = use_export_aoti(
