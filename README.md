@@ -5,7 +5,9 @@ Check out the accompanying blog post [here](https://pytorch.org/blog/presenting-
 
 **Updates**
 
-**July 1, 2025**: This repository now supports AMD MI300X GPUs using AITER kernels [(PR)](https://github.com/huggingface/flux-fast/pull/10). The README has been updated to provide instructions on how to run on AMD GPUs.
+**July 18, 2025**: First caching mechanism in `flux-fast` with `cache-dit`. Check out the accompanying [PR](https://github.com/huggingface/flux-fast/pull/13). Thanks to @DefTruth for the contribution!
+
+**July 1, 2025**: This repository now supports AMD MI300X GPUs using AITER kernels [(PR)](https://github.com/huggingface/flux-fast/pull/10). The README has been updated to provide instructions on how to run on AMD GPUs. Thanks to @jammm for the contribution!
 
 **June 28, 2025**: This repository now supports [Flux.1 Kontext Dev](https://hf.co/black-forest-labs/FLUX.1-Kontext-dev). We enabled ~2.5x speedup on it. Check out [this section](#flux1-kontext-dev) for more details.
 
