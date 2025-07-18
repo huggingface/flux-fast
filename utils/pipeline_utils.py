@@ -448,7 +448,7 @@ def optimize(pipeline, args):
     if args.compile_export_mode == "compile":
         pipeline = use_compile(pipeline)
     elif args.compile_export_mode == "export_aoti":
-        if not args.enable_cache_dit:
+        if args.cache_dit_config is not None:
             pipeline = use_export_aoti(
                 pipeline,
                 cache_dir=args.cache_dir,
