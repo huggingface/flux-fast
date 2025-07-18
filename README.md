@@ -145,7 +145,7 @@ usage: run_benchmark.py [-h] [--ckpt CKPT] [--prompt PROMPT] [--image IMAGE] [--
                         [--output-file OUTPUT_FILE] [--seed SEED] [--trace-file TRACE_FILE] [--disable_bf16]
                         [--compile_export_mode {compile,export_aoti,disabled}] [--disable_fused_projections] 
                         [--disable_channels_last] [--disable_fa3] [--disable_quant] [--disable_inductor_tuning_flags] 
-                        [--enable_cache_dit] [--cache_dit_config CACHE_DIT_CONFIG]
+                        [--cache_dit_config CACHE_DIT_CONFIG]
 
 options:
   -h, --help            show this help message and exit
@@ -175,9 +175,8 @@ options:
   --disable_quant       Disables usage of dynamic float8 quantization (default: False)
   --disable_inductor_tuning_flags
                         Disables use of inductor tuning flags (default: False)
-  --enable_cache_dit    Enables use of cache-dit: DBCache (default: False)
   --cache_dit_config CACHE_DIT_CONFIG
-                        Cache options config of cache-dit: DBCache (default: cache_config.yaml)
+                        Cache options config of cache-dit: DBCache (default: None)
 ```
 
 Note that all optimizations are on by default and each can be individually toggled. Example run:
@@ -737,7 +736,7 @@ Under the configuration of `cache-dit + F1B0 + no warmup + TaylorSeer`, it only 
 
 ### Important Notes
 
-1) Please add `--enable_cache_dit` flag to use cache-dit. cache-dit doesn't work with torch.export now. cache-dit extends Flux and introduces some Python dynamic operations, so it may not be possible to export the model using torch.export.
+1) Please add `--cache_dit_config cache_config.yaml` flag to use cache-dit. cache-dit doesn't work with torch.export now. cache-dit extends Flux and introduces some Python dynamic operations, so it may not be possible to export the model using torch.export.
 2) Please modify the [cache_config.yaml](./cache_config.yaml) file to change the configuration of cache-dit: DBCache, so as to test the effects and performance under different configurations.
 
 </details>
