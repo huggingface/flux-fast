@@ -40,7 +40,7 @@ def flash_attn_func(
     if is_hip():
         from aiter.ops.triton.mha import flash_attn_fp8_func as flash_attn_interface_func
     else:
-        from flash_attn.flash_attn_interface import flash_attn_interface_func
+        from flash_attn_interface import flash_attn_func as flash_attn_interface_func
 
     sig = inspect.signature(flash_attn_interface_func)
     accepted = set(sig.parameters)
@@ -98,7 +98,7 @@ class FlashFusedFluxAttnProcessor3_0:
                 )
         else:
             try:
-                from flash_attn.flash_attn_interface import flash_attn_interface_func
+                from flash_attn_interface import flash_attn_func as flash_attn_interface_func
             except ImportError:
                 raise ImportError(
                     "flash_attention v3 package is required to be installed"
@@ -172,7 +172,7 @@ class FlashFusedFluxAttnProcessor3_0:
         hidden_states = flash_attn_func(
             query.transpose(1, 2),
             key.transpose(1, 2),
-            value.transpose(1, 2))[0].transpose(1, 2)
+            value.transpose(1, 2)).transpose(1, 2)
 
         hidden_states = hidden_states.transpose(1, 2).reshape(batch_size, -1, attn.heads * head_dim)
         hidden_states = hidden_states.to(query.dtype)
