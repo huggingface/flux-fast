@@ -71,7 +71,7 @@ def flash_attn_func(
         dtype = torch.float8_e4m3fn
         outputs = flash_attn_interface_func(
             q.to(dtype), k.to(dtype), v.to(dtype), **kwargs,
-        )[0]
+        )
 
     return outputs.contiguous().to(torch.bfloat16) if is_hip() else outputs
 
@@ -172,9 +172,9 @@ class FlashFusedFluxAttnProcessor3_0:
         hidden_states = flash_attn_func(
             query.transpose(1, 2),
             key.transpose(1, 2),
-            value.transpose(1, 2))[0].transpose(1, 2)
+            value.transpose(1, 2))
 
-        hidden_states = hidden_states.transpose(1, 2).reshape(batch_size, -1, attn.heads * head_dim)
+        hidden_states = hidden_states.reshape(batch_size, -1, attn.heads * head_dim)
         hidden_states = hidden_states.to(query.dtype)
 
         if encoder_hidden_states is not None:
